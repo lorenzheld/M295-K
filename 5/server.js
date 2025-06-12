@@ -1,5 +1,4 @@
 import express from 'express';
-import fs from 'node:fs';
 import { randomUUID } from 'node:crypto'
 
 const app = express();
@@ -90,7 +89,7 @@ app.delete("/lends/:id", (req, res) => {
     const return_date = Date.now();
 
     if (!lend){
-        return res.status(400).send("Keine oder nicht valide id angebenen")
+        return res.status(400).send("Keine oder nicht valide id angegebenen")
     }
 
     lend.returned_at = return_date;
@@ -100,7 +99,7 @@ app.delete("/lends/:id", (req, res) => {
 });
 
 app.get("/lends", (req, res) => {
-
+    res.send(lends);
 })
 
 app.get("/books", (req, res) => {
@@ -114,7 +113,7 @@ app.get("/books/:isbn", (req, res) => {
 
 app.post("/books", (req, res) => {
     const {isbn, title, year, author } = req.body;
-    const book = req.body;
+
     if (!isbn || !title || !year || !author) {
         return res.status(400).send("Alle Parameter müssen angegeben werden");
     }
@@ -145,9 +144,6 @@ app.put("/books/:isbn", (req, res) => {
     }
 
     if (books.find(b => b.isbn === isbn)){
-
-        const bookIndex = books.findIndex(b => b.isbn === changingIsbn);
-
         books = books.filter(b => b.isbn !== changingIsbn);
 
         books = [...books, {isbn, title, year, author}];
