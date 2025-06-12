@@ -1,9 +1,36 @@
 import express from 'express';
-import { randomUUID } from 'node:crypto'
+import { randomUUID } from 'node:crypto';
+import swaggerUi from 'swagger-ui-express';
+import swaggerJSDoc from 'swagger-jsdoc';
+import fs from 'fs';
+import path from 'path';
 
 const app = express();
 const port = 3000;
 app.use(express.json());
+
+// Swagger-JSDoc Optionen
+const swaggerOptions = {
+    definition: {
+        openapi: '3.0.0', // OpenAPI Version
+        info: {
+            title: 'Library API',
+            version: '1.0.0',
+            description: 'API Documentation for the Library Management System'
+        }
+    },
+    // Der Pfad zu den Dateien mit den Swagger-Kommentaren
+    apis: ['./server.js'], // Hier wird `server.js` angegeben, um die Kommentare zu lesen
+};
+
+// Swagger Spec generieren
+const swaggerSpec = swaggerJSDoc(swaggerOptions);
+
+// Swagger-Dokumentation aus der Datei laden
+const swaggerDocument = JSON.parse(fs.readFileSync(path.resolve('swagger.json'), 'utf-8'));
+
+// Swagger UI an einer Route verfügbar machen
+app.use('/api-docs', swaggerUi.serve, swaggerUi.setup(swaggerDocument));
 
 let books = [
     {
@@ -39,6 +66,32 @@ let books = [
 ]
 let lends = []
 
+/**
+ * @swagger
+ * /lends:
+ *   post:
+ *     description: Ein Buch ausleihen
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             properties:
+ *               customer_id:
+ *                 type: string
+ *               isbn:
+ *                 type: string
+ *     responses:
+ *       201:
+ *         description: Erfolgreich, Buch wurde ausgeliehen
+ *       400:
+ *         description:
+ *           - Kunde hat die maximale Anzahl von 3 ausgeliehenen Büchern erreicht
+ *           - Buch ist bereits ausgeliehen
+ *       422:
+ *         description: Alle Parameter müssen angegeben werden
+ */
 app.post("/lends", (req, res) => {
     const id = randomUUID();
     const customer_id = req.body.customer_id;
@@ -58,20 +111,45 @@ app.post("/lends", (req, res) => {
 
     const isValid = customer_id && isbn;
 
-
     if(isValid) {
-        lends = [...lends, {id: id, customer_id:customer_id, isbn: isbn, borrowed_at: borrowed_at}];
-
+        lends = [...lends, {id: id, customer_id, isbn, borrowed_at}];
         res.status(201);
     } else {
         return res.status(422).send("Alle Parameter müssen angegeben werden");
     }
 });
 
+/**
+ * @swagger
+ * /lends:
+ *   get:
+ *     description: Gibt alle ausgeliehenen Bücher zurück
+ *     responses:
+ *       200:
+ *         description: Erfolgreich, alle ausgeliehenen Bücher
+ */
 app.get("/lends", (req, res) => {
     res.send(lends);
 });
 
+/**
+ * @swagger
+ * /lends/{id}:
+ *   get:
+ *     description: Gibt eine bestimmte Ausleihe basierend auf der ID zurück
+ *     parameters:
+ *       - name: id
+ *         in: path
+ *         required: true
+ *         description: Die ID der Ausleihe
+ *         schema:
+ *           type: string
+ *     responses:
+ *       200:
+ *         description: Erfolgreich, eine bestimmte Ausleihe
+ *       400:
+ *         description: Ausleihe nicht gefunden
+ */
 app.get("/lends/:id", (req, res) => {
     const id = req.params.id;
     const lend = lends.find(l => l.id === id);
@@ -83,6 +161,24 @@ app.get("/lends/:id", (req, res) => {
     }
 });
 
+/**
+ * @swagger
+ * /lends/{id}:
+ *   delete:
+ *     description: Löscht eine Ausleihe und setzt das Rückgabedatum
+ *     parameters:
+ *       - name: id
+ *         in: path
+ *         required: true
+ *         description: Die ID der Ausleihe
+ *         schema:
+ *           type: string
+ *     responses:
+ *       200:
+ *         description: Erfolgreich, Ausleihe zurückgegeben
+ *       400:
+ *         description: Ausleihe nicht gefunden
+ */
 app.delete("/lends/:id", (req, res) => {
     const id = req.params.id;
     const lend = lends.find(l => l.id === id);
@@ -95,22 +191,70 @@ app.delete("/lends/:id", (req, res) => {
     lend.returned_at = return_date;
 
     res.send(lend);
-
 });
 
-app.get("/lends", (req, res) => {
-    res.send(lends);
-})
-
+/**
+ * @swagger
+ * /books:
+ *   get:
+ *     description: Gibt alle Bücher zurück
+ *     responses:
+ *       200:
+ *         description: Erfolgreich, alle Bücher
+ */
 app.get("/books", (req, res) => {
     res.json(books);
 });
 
+/**
+ * @swagger
+ * /books/{isbn}:
+ *   get:
+ *     description: Gibt ein Buch basierend auf der ISBN zurück
+ *     parameters:
+ *       - name: isbn
+ *         in: path
+ *         required: true
+ *         description: Die ISBN des Buches
+ *         schema:
+ *           type: string
+ *     responses:
+ *       200:
+ *         description: Erfolgreich, Buch gefunden
+ */
 app.get("/books/:isbn", (req, res) => {
     const isbn = req.params.isbn;
     res.json(books.find(b => b.isbn === isbn));
 });
 
+/**
+ * @swagger
+ * /books:
+ *   post:
+ *     description: Ein neues Buch hinzufügen
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             properties:
+ *               isbn:
+ *                 type: string
+ *               title:
+ *                 type: string
+ *               year:
+ *                 type: integer
+ *               author:
+ *                 type: string
+ *     responses:
+ *       201:
+ *         description: Erfolgreich, Buch hinzugefügt
+ *       400:
+ *         description: Alle Parameter müssen angegeben werden
+ *       422:
+ *         description: Die ISBN ist bereits vergeben
+ */
 app.post("/books", (req, res) => {
     const {isbn, title, year, author } = req.body;
 
@@ -125,8 +269,43 @@ app.post("/books", (req, res) => {
     books = [...books, {isbn, title, year, author}];
 
     res.status(201).send("Buch hinzugefügt: \n" + isbn + "\n" + title + "\n" +  year + "\n" + author);
-})
+});
 
+/**
+ * @swagger
+ * /books/{isbn}:
+ *   put:
+ *     description: Ein Buch aktualisieren
+ *     parameters:
+ *       - name: isbn
+ *         in: path
+ *         required: true
+ *         description: Die ISBN des zu aktualisierenden Buches
+ *         schema:
+ *           type: string
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             properties:
+ *               isbn:
+ *                 type: string
+ *               title:
+ *                 type: string
+ *               year:
+ *                 type: integer
+ *               author:
+ *                 type: string
+ *     responses:
+ *       201:
+ *         description: Erfolgreich, Buch aktualisiert
+ *       400:
+ *         description: Alle Parameter müssen angegeben werden
+ *       422:
+ *         description: Die ISBN ist bereits vergeben
+ */
 app.put("/books/:isbn", (req, res) => {
     let {isbn, title, year, author } = req.body;
     const changingIsbn = req.params.isbn;
@@ -150,13 +329,30 @@ app.put("/books/:isbn", (req, res) => {
 
         res.status(201).send("Buch aktualisiert: \n" + isbn + "\n" + title + "\n" +  year + "\n" + author);
 
-
         return res.status(422).send("Angegebene ISBN ist vergeben");
     } else {
         return res.status(400).send("Die angegebenen ISBN ist den System nicht bekannt")
     }
 });
 
+/**
+ * @swagger
+ * /books/{isbn}:
+ *   delete:
+ *     description: Löscht ein Buch basierend auf der ISBN
+ *     parameters:
+ *       - name: isbn
+ *         in: path
+ *         required: true
+ *         description: Die ISBN des zu löschenden Buches
+ *         schema:
+ *           type: string
+ *     responses:
+ *       201:
+ *         description: Erfolgreich, Buch gelöscht
+ *       400:
+ *         description: Die ISBN ist nicht bekannt
+ */
 app.delete("/books/:isbn", (req, res) => {
     const isbn = req.params.isbn
     if (books.find(b => b.isbn === isbn)){
@@ -169,6 +365,37 @@ app.delete("/books/:isbn", (req, res) => {
     }
 });
 
+/**
+ * @swagger
+ * /books/{isbn}:
+ *   patch:
+ *     description: Aktualisiert Teile eines Buches basierend auf der ISBN
+ *     parameters:
+ *       - name: isbn
+ *         in: path
+ *         required: true
+ *         description: Die ISBN des Buches
+ *         schema:
+ *           type: string
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             properties:
+ *               title:
+ *                 type: string
+ *               year:
+ *                 type: integer
+ *               author:
+ *                 type: string
+ *     responses:
+ *       200:
+ *         description: Erfolgreich, Buch aktualisiert
+ *       404:
+ *         description: Buch nicht gefunden
+ */
 app.patch("/books/:isbn", (req, res) => {
     const isbn = req.params.isbn;
     const { title, year, author } = req.body;
@@ -189,5 +416,4 @@ app.patch("/books/:isbn", (req, res) => {
 });
 
 console.log(`Server running at http://localhost:${port}`);
-app.listen(port, () => {
-});
+app.listen(port, () => {});
