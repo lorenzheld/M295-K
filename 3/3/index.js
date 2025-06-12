@@ -4,6 +4,7 @@ import fs from 'node:fs';
 const app = express();
 const port = 3000;
 
+
 app.get('/now', (req, res) => {
     const now = new Date();
     res.send(`Aktuelle Zeit: ${now.toLocaleTimeString()}`);
@@ -21,45 +22,46 @@ app.get('/name', (req, res) => {
 })
 
 app.get('/html', (req, res) => {
-    fs.readFile('test.html', 'utf8', function(err, text){
+    fs.readFile('3/3/test.html', 'utf8', function(err, text){
         res.send(text);
     })
 })
 
 app.get('/image', (req, res) => {
-    fs.readFile('image.png', function(err, image){
-        res.writeHead(200, {'Content-Type': 'image/png'});
+    fs.readFile('3/3/image.jpeg', function(err, image){
+        res.writeHead(200, {'Content-Type': 'image.jpeg'});
         res.end(image);
     })
 })
 
 app.get('/teapot', (req, res) => {
-    res.status(418).send("I'm a teapot");
+    res.sendStatus(418);
 });
 
 app.get('/user-agent', (req, res) => {
     const userAgent = req.headers['user-agent'];
-    res.send(`Your User-Agent is: ${userAgent}`);
-});
-
-app.get('/secret', (req, res) => {
-    res.status(403).send("Access forbidden: You are not allowed to access this resource.");
+    res.send(userAgent);
 })
 
-app.get('/xml', (req, res) => {
-    res.set('Content-Type', 'application/xml');
-    res.send('<message>Hello, this is an XML response!</message>');
-});
+app.get("/secret", (req, res) => {
+    res.sendStatus(403)
+})
 
-app.get('/me', (req, res) => {
+app.get("/xml", (req, res) => {
+    res.set("Content-Type", "application.xml")
+    res.send("<message>This is an XML responsimonsi</message>")
+})
+
+app.get("/me", (req, res) => {
     res.json({
         name: "Lorenz Held",
         age: 16,
-        Wohnort: "Pfäffikon ZH",
-        Augenfarbe: "Braun"
-    });
+        adress: "Berghaldenstrasse 31",
+        plz: 8330,
+        augenfarbe: "Braun"
+    })
 })
-
 app.listen(port, () => {
     console.log(`Server running at http://localhost:${port}`);
 });
+
