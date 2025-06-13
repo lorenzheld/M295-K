@@ -1,40 +1,52 @@
-<!doctype html>
-<html lang="en">
+<!DOCTYPE html>
+<html lang="de">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport"
-          content="width=device-width, user-scalable=no, initial-scale=1.0, maximum-scale=1.0, minimum-scale=1.0">
-    <meta http-equiv="X-UA-Compatible" content="ie=edge">
-    <title>Document</title>
+    <title>Login</title>
+    <style>
+        /* dein CSS von vorher… */
+    </style>
 </head>
+<body>
+<div class="login-container">
+    <h2>Login</h2>
+    <form id="login-form">
+        <label for="username">Benutzername</label>
+        <input type="text" id="username" required>
+
+        <label for="password">Passwort</label>
+        <input type="password" id="password" required>
+
+        <button type="submit">Einloggen</button>
+    </form>
+    <p id="error-msg" style="color:red;"></p>
+</div>
+
 <script>
-    document.getElementById("login-form").addEventListener("submit", async e => {
+    document.getElementById('login-form').addEventListener('submit', async e => {
         e.preventDefault();
-        const username = document.getElementById("username").value.trim();
-        const password = document.getElementById("password").value;
+        const username = document.getElementById('username').value.trim();
+        const password = document.getElementById('password').value;
+        const errorEl = document.getElementById('error-msg');
 
         try {
-            const res = await fetch('/login', {
-                method: "POST"
-            })
+            const res = await fetch('http://localhost:3000/login', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ username, password })
+            });
+            const data = await res.json();
+
+            if (!res.ok) {
+                throw new Error(data.message || 'Unbekannter Fehler');
+            }
+            // Erfolgreich eingeloggt – hier weiterleiten oder Token speichern:
+            console.log('Erfolgreiches Login:', data.user);
+            window.location.href = '/dashboard';
+        } catch (err) {
+            errorEl.textContent = err.message;
         }
-
-    })
+    });
 </script>
-<body>
-
-    <div class="login-container">
-        <h2>Login</h2>
-        <form method="post" id="login-form">
-            <label for="username">Benutzername</label>
-            <input type="text" id="username" name="username" required>
-
-            <label for="password">Passwort</label>
-            <input type="password" id="password" name="password" required>
-
-            <input type="submit" value="Einloggen">
-        </form>
-    </div>
-
 </body>
 </html>

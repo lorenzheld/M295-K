@@ -48,12 +48,12 @@ let lends = []
 
 app.post("/lends", (req, res) => {
     const id = randomUUID();
-    const customer_id = req.body.customer_id;
+    const customer_id = req.body.customerId;
     const isbn = req.body.isbn;
     const borrowed_at = Date.now();
 
     const book_lend = lends.find(l => l.isbn === isbn);
-    const customerLends = lends.filter(l => l.customer_id === customer_id).length + 1;
+    const customerLends = lends.filter(l => l.customerId === customer_id).length + 1;
 
     if (customerLends > 3) {
         return res.status(400).send("Ein Kunde kann nur maximal 3 Ausleihen haben")
@@ -67,7 +67,7 @@ app.post("/lends", (req, res) => {
 
 
     if(isValid) {
-        lends = [...lends, {id: id, customer_id:customer_id, isbn: isbn, borrowed_at: borrowed_at}];
+        lends = [...lends, {id: id, customerId:customer_id, isbn: isbn, borrowedAt: borrowed_at}];
 
         res.status(201);
     } else {
@@ -209,6 +209,7 @@ app.post("/login", (req, res) => {
     }
 
     req.session.username = username;
+    console.log(username +" gespeichert")
 
     res.sendStatus(201);
 
